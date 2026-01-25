@@ -1,118 +1,133 @@
-/*
- * rl_encoder.c
+/**
+ * @file rl_encoder.c
+ * @author Dejana Smiljanic
+ * @date 17.01.2026.
+ * @brief Run-Length Encoding implementation for JPEG-like compression.
  *
- *  Created on: 17.01.2026.
- *      Author: 23dej
+ * This file implements run-length encoding of zig-zag ordered
+ * DCT coefficients, including DC prediction and AC zero run encoding.
  */
 
-#include <stdio.h>
-#include <builtins.h>
-#include "common_defs.h"
 #include "rl_encoder.h"
-#include "choices.h"
 
-#pragma section("seg_sdram1")
-RLE_block_t g_rle_blocks[MAX_BLOCKS];
+/**
+ * Global buffer holding RLE-encoded blocks.
+ *
+ */
+#pragma section("seg_sram1")
+RLE_block_t rle_blocks_g[MAX_BLOCKS];
 
+/** Previous DC coefficient used for differential coding */
+static int16_t DC_prev_value_g = 0;
 
-static int16_t g_DC_prev_value = 0;
-static int8_t g_first_block = 1;
-
-void DumpRleToFile(const char* filename, RLE_block_t* rle_blocks)
-{
-    FILE* f = fopen(filename, "w");
-    if(f == NULL) return;
-    uint32_t num_blocks = (IMG_WIDTH / 8) * (IMG_HEIGHT / 8);
-
-    for (uint32_t b = 0; b < num_blocks; b++)
-    {
-        fprintf(f, "BLOCK %u\n", b);
-        fprintf(f, "DC %d\n", rle_blocks[b].DC_value_diff);
-
-        for (uint32_t i = 0; i < rle_blocks[b].end_of_block; i++)
-        {
-            fprintf(
-                f,
-                "%d %d\n",
-                rle_blocks[b].AC_coeffs[i].zero_num,
-                rle_blocks[b].AC_coeffs[i].coeff_value
-            );
-        }
-        fprintf(f, "EOB\n");
-    }
-
-    fclose(f);
-}
+/** Flag indicating the first encoded block */
+static int8_t first_block_g = 1;
 
 
-void RunImageRLE(const int16_t* p_zigzag_buffer, RLE_block_t*   p_rle_blocks)
-{
-    uint16_t bx, by;
-    uint16_t num_blocks_x = IMG_WIDTH / 8;
-    uint16_t num_blocks_y = IMG_HEIGHT / 8;
-
-    uint32_t block_idx = 0;
-
-    ResetRLE();
-
-    for (by = 0; by < num_blocks_y; by++)
-    {
-        for (bx = 0; bx < num_blocks_x; bx++)
-        {
-            const int16_t* zz_block =
-                &p_zigzag_buffer[block_idx * 64];
-
-            RLE(
-                (int16_t*)zz_block,
-                &p_rle_blocks[block_idx]
-            );
-
-            block_idx++;
-        }
-    }
-}
-
+/**
+ * Resets RLE internal state.
+ *
+ * Clears DC prediction state and prepares the encoder
+ * for a new image or frame.
+ */
 void ResetRLE(void)
 {
-    g_DC_prev_value = 0;
-    g_first_block = 1;
+    DC_prev_value_g = 0;
+    first_block_g = 1;
 }
 
-void RLE (int16_t* g_zz_p, RLE_block_t* RLE_output_p)
+/**
+ * Performs run-length encoding on a single 8x8 DCT block.
+ *
+ * The input block must be in zig-zag order. DC coefficient
+ * is differentially encoded, while AC coefficients are
+ * encoded using (zero-run, value) pairs.
+ *
+ * An explicit End-Of-Block (EOB) symbol is appended.
+ *
+ * @param zigzag_p      Pointer to zig-zag ordered DCT coefficients.
+ * @param RLE_output_p  Pointer to the output RLE block structure.
+ */
+void RLE (int16_t* zigzag_p, RLE_block_t* RLE_output_p)
 {
-	int32_t i = 0; // iterator for zigzag array
-	int32_t zero_num_i = 0; // num of repeating zeros
-	int32_t ac_i = 0; // num of ac coeffs
+	int32_t i = 0; /**< Zig-zag coefficient index */
+	int32_t zero_num_i = 0; /**< Count of consecutive zero AC coefficients */
+	int32_t ac_i = 0;  /**< Number of encoded AC symbols */
 
-	if(g_first_block == 1)
+	/* DC differential encoding */
+	if(first_block_g == 1)
 	{
-		RLE_output_p -> DC_value_diff = g_zz_p[0];
-		g_first_block = 0;
+		RLE_output_p -> DC_value_diff = zigzag_p[0];
+		first_block_g = 0;
 	}
 	else
 	{
-		RLE_output_p -> DC_value_diff = g_zz_p[0] - g_DC_prev_value;
+		RLE_output_p -> DC_value_diff = zigzag_p[0] - DC_prev_value_g;
 	}
 
-	g_DC_prev_value = g_zz_p[0];
+	DC_prev_value_g = zigzag_p[0];
 
+    /* AC run-length encoding */
 	for(i = 1; i < MAX_RLE_SYMBOLS_PER_BLOCK; i++)
 	{
-		//if(EXPRA(g_zz_p[i] == 0))
-		if(g_zz_p[i]==0)
+		if(EXPRA(zigzag_p[i] == 0))
 		{
 			zero_num_i++;
 		}
 		else
 		{
 			RLE_output_p -> AC_coeffs[ac_i].zero_num = zero_num_i;
-			RLE_output_p -> AC_coeffs[ac_i].coeff_value = g_zz_p[i];
+			RLE_output_p -> AC_coeffs[ac_i].coeff_value = zigzag_p[i];
+
 			ac_i++;
 			zero_num_i = 0;
 		}
 	}
 
+    /* Explicit End-Of-Block marker */
 	RLE_output_p -> AC_coeffs[ac_i].zero_num = 0;
 	RLE_output_p -> AC_coeffs[ac_i].coeff_value = 0;
 	RLE_output_p -> end_of_block = ac_i + 1;
 }
+
+/**
+ * Dumps all RLE-encoded blocks to a text file.
+ *
+ * @param filename_p Pointer to the output file name.
+ */
+void DumpRleToFile(const char* filename_p)
+{
+    FILE* f = fopen(filename_p, "w");
+    if (f == NULL) return;
+
+    uint32_t num_blocks = (IMG_WIDTH / 8) * (IMG_HEIGHT / 8);
+    char line[128];
+
+    for (uint32_t b = 0; b < num_blocks; b++)
+    {
+
+        int len = snprintf(line, sizeof(line), "BLOCK %u\n", b);
+        fwrite(line, 1, len, f);
+
+        len = snprintf(line, sizeof(line), "DC %d\n",
+                       rle_blocks_g[b].DC_value_diff);
+        fwrite(line, 1, len, f);
+
+        for (uint32_t i = 0; i < rle_blocks_g[b].end_of_block; i++)
+        {
+            len = snprintf(
+                line,
+                sizeof(line),
+                "%d %d\n",
+                rle_blocks_g[b].AC_coeffs[i].zero_num,
+                rle_blocks_g[b].AC_coeffs[i].coeff_value
+            );
+            fwrite(line, 1, len, f);
+        }
+
+        fwrite("EOB\n", 1, 4, f);
+    }
+
+    fclose(f);
+}
+

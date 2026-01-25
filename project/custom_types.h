@@ -1,22 +1,26 @@
-/*
- * custom_types.h
+/**
+ * @file custom_types.h
+ * @author Dejana Smiljanic
+ * @date 02.01.2026.
+ * @brief Manual definitions of fixed-width integer types.
  *
- *  Created on: 02.01.2026.
- *      Author: 23dej
+ * This header defines standard integer types to ensure consistent bit-width
+ * across different compiler toolchains and hardware platforms.
  */
 
 #ifndef CUSTOM_TYPES_H_
 #define CUSTOM_TYPES_H_
 
-typedef signed char        int8_t;
-typedef unsigned char      uint8_t;
-typedef signed short       int16_t;
-typedef unsigned short     uint16_t;
+/** @brief 8-bit signed integer type. Range: -128 to 127. */
+typedef signed char     int8_t;
 
-#ifndef _STDINT_H
-  typedef signed int int32_t;
-  typedef unsigned int uint32_t;
-#endif
+/** @brief 8-bit unsigned integer type. Range: 0 to 255. */
+typedef unsigned char   uint8_t;
 
+/** @brief 16-bit signed integer type. Range: -32768 to 32767. */
+typedef signed short    int16_t;
+
+/** @brief 16-bit unsigned integer type. Range: 0 to 65535. */
+typedef unsigned short  uint16_t;
 
 #endif /* CUSTOM_TYPES_H_ */
