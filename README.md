@@ -110,4 +110,4 @@ Before running the project, ensure you have the following:
 3. Open ```CMD``` or preffered environment and run the provided ```dekoder.py``` script after main program execution finishes:
    ```bash
    python dekoder.py
-
+4. Results will be stored in ```results``` folder (also result images will have ```reconstructed``` sufix)
