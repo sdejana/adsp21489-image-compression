@@ -92,14 +92,14 @@ Before running the project, ensure you have the following:
 
 ### 3. Running the CrossCore project
 1. Make sure to copy provided ```C``` files in ```project/src/``` folder to ```src``` folder of your created ```CrossCore``` project
-2. Make sure to place ```app.ldf``` file in correct folder (```your_project_name/system/startup_ldf/``)
+2. Make sure to place ```app.ldf``` file in correct folder (```your_project_name/system/startup_ldf/```)
 3. Compile program and upload ```dxe``` file to ADSP21489 
 4. The program will:
    - Center pixel values around zero.
    - Segment the image into 8×8 blocks.
    - Apply DCT and quantization using the predefined quantization matrix.
-   - Perform zig-zag (Cik-Cak) ordering.
-   - Encode DC and AC coefficients (DC: predictive, AC: run-length coding).
+   - Perform zig-zag transform.
+   - Encode DC and AC coefficients (DC: differential, AC: run-length coding).
    - Serialize the compressed data to the output file in ```Debug``` folder of your project.
 5. Wait until program finishes
 ---
