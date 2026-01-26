@@ -79,20 +79,20 @@ Before running the project, ensure you have the following:
 
 ### 2. Preparing the Image
 1. Choose the image(s) you want to compress. Supported formats: `.bmp`.
-2. Transfer the image(s) to `images/` folder.
+2. Transfer the image(s) to `images/` folder. Make sure to create this folder inside ```bmp_loader``` folder or set correct path(s).
 3. Compile provided bmp_loader project
    ```
    gcc main_menu.c bmp_loader.c -o main_menu
    ```
-4. Make sure to set correct path to \
+4. Once again make sure to set correct path to \
    ```const char* file_name = "./images/img_name.bmp";``` and \
    ```char* path = "path/to/your/crosscore/project/src/image_rgb";```
 4. Run ```main_menu``` and wait for _RGB header generated successfully_ message or check errors if any show
 ---
 
 ### 3. Running the CrossCore project
-1. Make sure to copy provided ```C``` files in ```project``` folder to ```src``` folder of your created ```CrossCore``` project
-2. Make sure to place ```app.ldf``` file in correct folder (```project_name/system/startup_ldf/``)
+1. Make sure to copy provided ```C``` files in ```project/src/``` folder to ```src``` folder of your created ```CrossCore``` project
+2. Make sure to place ```app.ldf``` file in correct folder (```your_project_name/system/startup_ldf/``)
 3. Compile program and upload ```dxe``` file to ADSP21489 
 4. The program will:
    - Center pixel values around zero.
